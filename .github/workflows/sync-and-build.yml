@@ -85,6 +85,10 @@ jobs:
         run: |
           tar -czf dist.tar.gz -C dist .
 
+      - name: Archive dist zip
+        run: |
+          zip -r dist.zip dist
+
       - name: Publish Release (latest) with dist.tar.gz
         uses: ncipollo/release-action@v1
         with:
@@ -96,4 +100,4 @@ jobs:
           body: |
             Automated build from ${{ github.sha }} on branch ${{ github.ref_name }}.
             Download dist at: https://github.com/${{ github.repository }}/releases/latest/download/dist.tar.gz
-          artifacts: "dist.tar.gz"
+          artifacts: "dist.tar.gz,dist.zip"
