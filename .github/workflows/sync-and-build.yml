@@ -76,27 +76,3 @@ jobs:
           name: dist
           path: dist
           if-no-files-found: error
-
-      - name: Deploy to gh-pages
-        if: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dist
-          force_orphan: true
-
-      - name: Archive dist zip
-        run: |
-          cd dist
-          zip -r ../dist.zip .
-
-      - name: Publish GitHub Release with dist
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: auto-build-${{ github.run_id }}
-          name: Auto Build ${{ github.run_number }}
-          body: |
-            Automated build from commit ${{ github.sha }} on branch ${{ github.ref_name }}.
-            Includes dist.zip for direct download.
-          artifacts: "dist.zip"
