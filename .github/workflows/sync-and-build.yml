@@ -76,3 +76,20 @@ jobs:
           name: dist
           path: dist
           if-no-files-found: error
+
+      - name: Archive dist tar.gz
+        run: |
+          tar -czf dist.tar.gz -C dist .
+
+      - name: Publish Release (latest) with dist.tar.gz
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: dist-latest
+          name: Dist Latest
+          allowUpdates: true
+          makeLatest: true
+          body: |
+            Automated build from ${{ github.sha }} on branch ${{ github.ref_name }}.
+            Download dist at: https://github.com/${{ github.repository }}/releases/latest/download/dist.tar.gz
+          artifacts: "dist.tar.gz"
