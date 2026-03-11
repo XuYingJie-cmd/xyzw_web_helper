@@ -50,7 +50,7 @@ jobs:
               echo "No upstream branch found matching ${BRANCH} or master"
               exit 1
             fi
-            git push origin "${BRANCH}"
+            echo "Skip pushing back to origin; continue to build and release"
           fi
 
       - name: Setup Node.js
@@ -58,6 +58,11 @@ jobs:
         with:
           node-version: 18
           cache: 'pnpm'
+
+      - name: Enable Corepack and prepare pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 -o
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -76,6 +81,10 @@ jobs:
           name: dist
           path: dist
           if-no-files-found: error
+
+      - name: Verify dist exists
+        run: |
+          test -d dist && echo "dist exists" || (echo "dist build failed"; exit 1)
 
       - name: Archive dist tar.gz
         run: |
