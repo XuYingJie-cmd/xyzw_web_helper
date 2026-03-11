@@ -1,0 +1,74 @@
+name: Sync Upstream and Build Dist
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          BRANCH="$(git remote show origin | sed -n 's/.*HEAD branch: //p')"
+          echo "Default branch: ${BRANCH}"
+          STATUS=$(curl -s -o resp.json -w "%{http_code}" -X POST \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/merge-upstream" \
+            -d "{\"branch\":\"${BRANCH}\"}")
+          echo "merge-upstream status: ${STATUS}"
+          cat resp.json || true
+          if [ "${STATUS}" -ge 200 ] && [ "${STATUS}" -lt 300 ]; then
+            echo "Upstream merged via API"
+          else
+            echo "Falling back to manual upstream fetch"
+            git remote add upstream https://github.com/w1249178256/xyzw_web_helper.git || true
+            git fetch upstream --tags
+            git checkout "${BRANCH}"
+            if git show-ref --verify --quiet "refs/remotes/upstream/${BRANCH}"; then
+              git rebase "upstream/${BRANCH}" || { echo "Rebase failed"; exit 1; }
+            elif git show-ref --verify --quiet "refs/remotes/upstream/master"; then
+              git rebase "upstream/master" || { echo "Rebase failed"; exit 1; }
+            else
+              echo "No upstream branch found matching ${BRANCH} or master"
+              exit 1
+            fi
+            git push origin "${BRANCH}"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build dist
+        run: pnpm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
