@@ -1,6 +1,10 @@
 name: Sync Upstream and Build Dist
 
 on:
+  push:
+    branches:
+      - main
+      - master
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
@@ -72,3 +76,11 @@ jobs:
           name: dist
           path: dist
           if-no-files-found: error
+
+      - name: Deploy to gh-pages
+        if: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
+          force_orphan: true
